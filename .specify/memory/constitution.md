@@ -1,50 +1,82 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Kallisti App Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Monorepo with Three Domains
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+The project is organized into three root-level directories with strict responsibilities:
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+- **`frontend/`**: UI layer built with Vite + React + TypeScript. Must not contain business logic or direct data access.
+- **`backend/`**: API layer built with Rust using Hexagonal Architecture (Ports & Adapters). Must not contain presentation logic.
+- **`IaC/`**: Infrastructure as Code using Docker Compose. Must not contain application code.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### II. Hexagonal Architecture (Backend)
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+The Rust backend MUST follow the Ports & Adapters (Hexagonal Architecture) pattern:
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+- **Domain**: Entities, value objects, and repository traits. Must not depend on external libraries or infrastructure.
+- **Application**: Use cases and input ports. Must depend only on the domain layer.
+- **Infrastructure**: Concrete adapters (HTTP, database, queues, etc.). May depend on domain and application layers.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+Any external dependency (database, HTTP client, messaging system, etc.) MUST be injected through traits.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+### III. Decoupled Frontend (NON-NEGOTIABLE)
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+The React + TypeScript frontend:
+
+- MUST NOT contain business logic — only presentation logic and UI state management.
+- Communication with the backend MUST occur through API contracts defined in `backend/contracts/`.
+- Shared types MUST either be duplicated intentionally or extracted into a reusable `shared/` package when necessary.
+
+### IV. Declarative Infrastructure
+
+All runtime environments (development, staging, and production) MUST be defined inside `IaC/`:
+
+- `docker-compose.yml` MUST be used for local development environments.
+- Environment variables MUST be separated by environment.
+- Infrastructure configuration MUST NOT be hardcoded inside `frontend/` or `backend/`.
+
+### V. Layer-Based Testing Strategy
+
+Each layer MUST have its own testing strategy:
+
+- **Domain (Rust)**: Pure unit tests without mocking. Coverage MUST be greater than 90%.
+- **Application (Rust)**: Tests using mocked traits. Coverage MUST be greater than 80%.
+- **Infrastructure (Rust)**: Integration tests using real containers and services.
+- **Frontend (React)**: Component tests with Testing Library and end-to-end tests with Playwright.
+- **IaC**: `docker compose config` MUST be validated in CI pipelines.
+
+### VI. Simplicity and YAGNI
+
+Do not introduce abstractions, libraries, or architectural layers before they are necessary.
+
+- Every external dependency MUST be justified in the corresponding PR.
+- Prefer simple types (`struct`, `enum`) over complex frameworks whenever possible.
+- If a solution can be implemented without a framework, it SHOULD be implemented without one.
+
+## Technology Stack
+
+| Layer          | Technology                      |
+|----------------|---------------------------------|
+| Frontend       | Vite + React + TypeScript       |
+| Backend        | Rust (Edition 2024)             |
+| Infrastructure | Docker Compose                  |
+| Testing        | cargo test, Vitest, Playwright  |
+| CI/CD          | GitHub Actions                  |
+
+## Development Workflow
+
+- **Branches**: `feature/<name>` from `main`. Pull Requests are mandatory.
+- **Commits**: Must follow Conventional Commits (`feat:`, `fix:`, `refactor:`, `chore:`, `docs:`).
+- **PR Gate**: Lint → Test → Build → Docker Compose validation must pass before merging.
+- **Architecture Decision Records (ADR)**: Any significant architectural decision MUST be documented as an ADR in `docs/adr/`.
+- **API Contracts**: Contracts between frontend and backend MUST be defined and agreed upon before implementing either side.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+- This constitution takes precedence over any undocumented practice.
+- Amendments MUST be documented in a PR with justification, impact analysis, and a migration plan.
+- Every PR MUST verify compliance with these principles.
+- Violations of NON-NEGOTIABLE principles MUST block the merge automatically.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-05-24 | **Last Amended**: 2026-05-24
